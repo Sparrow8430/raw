@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>PURE — local UI</title>
+  <style>
+    body { background:#070707; color:#eaeaea; font-family:system-ui,monospace; padding:18px; }
+    input, button { padding:8px; margin:4px; }
+    #results { margin-top:12px; white-space:pre-wrap; background:#0a0a0a; padding:12px; border-radius:6px; }
+  </style>
+</head>
+<body>
+  <h1>🜏 PURE (v0.1)</h1>
+  <div>
+    <input id="query" placeholder="Search local..." />
+    <button id="searchBtn">Search</button>
+  </div>
+  <div>
+    <input id="peer" placeholder="Peer host (e.g. 127.0.0.1:9000)" />
+    <button id="connectBtn">Connect / Ping Peer</button>
+  </div>
+
+  <div id="results"></div>
+
+  <script src="api.js"></script>
+</body>
+</html>

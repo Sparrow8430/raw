@@ -1,26 +1,53 @@
 #!/bin/bash
 set -e
 
-echo "[*] Updating system..."
+echo "🜏  PURE: initializing environment..."
+sleep 1
+
+# Update system
+
+echo "[*] Updating system packages..."
 sudo apt update -y && sudo apt upgrade -y
 
-echo "[*] Installing dependencies..."
-sudo apt install -y python3 python3-pip git nodejs npm build-essential libnss3 libatk1.0-0 libxss1 libasound2 libgtk-3-0
+# Dependencies
 
-echo "[*] Cloning LunaOS components..."
-mkdir -p ~/lunaos && cd ~/lunaos
+echo "[*] Installing core dependencies..."
+sudo apt install -y python3 python3-pip git nodejs npm build-essential 
+libnss3 libatk1.0-0 libxss1 libasound2 libgtk-3-0 curl
 
-# Browser
-git clone https://github.com/yourusername/lunaos-browser.git browser || echo "Browser repo already exists."
+# Create PURE workspace
 
-# Protocol server
-git clone https://github.com/yourusername/lunaos-protocol.git protocol || echo "Protocol repo already exists."
+echo "[*] Setting up PURE directories..."
+mkdir -p ~/pure && cd ~/pure
 
-# Search
-git clone https://github.com/yourusername/lunaos-search.git search || echo "Search repo already exists."
+# Clone components
 
-echo "[*] Installing Node dependencies for browser..."
-cd browser && npm install && cd ..
+echo "[*] Cloning PURE components..."
+if [ ! -d "browser" ]; then
+git clone [https://github.com/Slave88/pure-browser.git](https://github.com/Slave88/pure-browser.git) browser
+else
+echo "[+] Browser already exists, skipping..."
+fi
 
-echo "[*] Launching LunaOS browser..."
-cd browser && npm start
+if [ ! -d "protocol" ]; then
+git clone [https://github.com/Slave88/pure-protocol.git](https://github.com/Slave88/pure-protocol.git) protocol
+else
+echo "[+] Protocol already exists, skipping..."
+fi
+
+if [ ! -d "search" ]; then
+git clone [https://github.com/Slave88/pure-search.git](https://github.com/Slave88/pure-search.git) search
+else
+echo "[+] Search already exists, skipping..."
+fi
+
+# Install browser dependencies
+
+echo "[*] Installing browser dependencies..."
+cd ~/pure/browser
+npm install
+
+# Run browser
+
+echo "[*] Launching PURE browser..."
+npm start

@@ -29,17 +29,16 @@ sudo apt update
 sudo apt install python3 python3-pip nodejs npm git
 ```
 
-## Installation
+## Quick Installation
 
-Run the installer:
 ```bash
-curl -sSL https://raw.githubusercontent.com/YOUR_USERNAME/pure-installer/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Slave88/pure/main/install.sh | bash
 ```
 
 Or clone and run manually:
 ```bash
-git clone https://github.com/YOUR_USERNAME/pure-installer.git
-cd pure-installer
+git clone https://github.com/Slave88/pure.git
+cd pure
 chmod +x install.sh
 ./install.sh
 ```
@@ -112,8 +111,6 @@ All data is stored locally in `~/.pure/data/`:
 
 ## Testing
 
-See [TESTING.md](TESTING.md) for comprehensive testing instructions.
-
 Quick test:
 ```bash
 # Check if services are running
@@ -124,36 +121,59 @@ curl http://localhost:8002/health
 curl http://localhost:8001/identity
 ```
 
-## Development
+See [TESTING.md](TESTING.md) for comprehensive testing instructions.
 
-### Repository Structure
+## Repository Structure
 
 ```
-pure-installer/
-├── install.sh           # Main installer script
-└── README.md
+pure/
+├── install.sh              # Main installer script
+├── README.md               # This file
+├── TESTING.md             # Testing guide
+├── pure-protocol/         # Protocol server
+│   ├── main.py
+│   ├── requirements.txt
+│   └── README.md
+├── pure-search/           # Search server
+│   ├── main.py
+│   ├── requirements.txt
+│   └── README.md
+└── pure-browser/          # Browser client
+    ├── main.js
+    ├── index.html
+    ├── package.json
+    └── README.md
+```
 
-pure-protocol/
-├── main.py             # Protocol server
-├── requirements.txt
-└── README.md
+## Development
 
-pure-search/
-├── main.py             # Search server
-├── requirements.txt
-└── README.md
+### Manual Setup
 
-pure-browser/
-├── main.js             # Electron main process
-├── index.html          # UI
-├── package.json
-└── README.md
+```bash
+# Clone the repository
+git clone https://github.com/Slave88/pure.git
+cd pure
+
+# Install protocol dependencies
+cd pure-protocol
+pip3 install -r requirements.txt
+python3 main.py &
+
+# Install search dependencies
+cd ../pure-search
+pip3 install -r requirements.txt
+python3 main.py &
+
+# Install browser dependencies
+cd ../pure-browser
+npm install
+npm start
 ```
 
 ### Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
@@ -195,7 +215,7 @@ Inspired by Urbit's vision of personal servers and digital sovereignty.
 
 ## Support
 
-- Issues: GitHub Issues
+- Issues: [GitHub Issues](https://github.com/Slave88/pure/issues)
 - Documentation: See individual component READMEs
 - Community: Coming soon
 

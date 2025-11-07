@@ -86,7 +86,7 @@ sudo ln -sf "$WORKDIR/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
 chmod +x "$WORKDIR/pure-lang/server.py"
 
 # Add demo Ritual script
-DEMO_SCRIPT="$WORKDIR/pure-lang/ritual_demo.txt"
+DEMO_SCRIPT="$WORKDIR/pure-lang/ritual.txt"
 cat > "$DEMO_SCRIPT" <<'EOF'
 # Demo Ritual script
 CHIME
@@ -139,5 +139,5 @@ QUICK START:
    xdg-open ~/pure/browser/index.html
 
 4) Run the Ritual demo:
-   ritual /pure-lang/ritual_demo.txt
+   ritual /pure-lang/ritual.txt
 EOF

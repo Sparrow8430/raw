@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # ritual_esolang.py — Ritual esolang + visuals
-# Put this at: ~/pure/pure-lang/ritual_esolang.py
 # Make executable: chmod +x ritual_esolang.py
 
 import os
@@ -9,8 +8,8 @@ import webbrowser
 import time
 import re
 import pygame
-from pygame import gfxdraw
 import sys
+from pygame import gfxdraw
 
 # ---- MEMORY / STATE ----
 cells = [0] * 10
@@ -55,19 +54,13 @@ def PAUSE(sec="1"):
     print(f"[PAUSE] {sec}s")
 
 def SUMMON(app): 
-    # cross-platform attempt: on Linux use xdg-open when URL-like, otherwise attempt subprocess
     try:
         if os.path.exists(app):
-            if sys.platform.startswith("win"):
-                os.startfile(app)
-            else:
-                subprocess.Popen([app], shell=True)
+            subprocess.Popen([app], shell=True)
+        elif re.match(r"^https?://", app):
+            webbrowser.open(app)
         else:
-            # if it looks like a URL open in browser
-            if re.match(r"^https?://", app):
-                webbrowser.open(app)
-            else:
-                subprocess.Popen(app, shell=True)
+            subprocess.Popen(app, shell=True)
     except Exception as e:
         print(f"[SUMMON ERROR] {e}")
     print(f"[SUMMON] {app}")
@@ -80,7 +73,6 @@ def INSCRIBE(val):
     print(f"[INSCRIBE] {val}")
 
 def SCRIBE(var, val): 
-    # safer eval: allow arithmetic + variables only
     try:
         variables[var] = eval(val, {}, variables)
     except Exception:
@@ -144,11 +136,9 @@ commands = {
     "ARCANE": ARCANE
 }
 
-# ---- Helper functions ----
+# ---- HELPER FUNCTIONS ----
 def evaluate_expr(expr):
-    # replace variables first
     for var in variables:
-        # word-boundary replace only variable names
         expr = re.sub(r'\b' + re.escape(var) + r'\b', str(variables[var]), expr)
     try:
         return eval(expr, {}, {})
@@ -161,7 +151,6 @@ def evaluate_expr(expr):
 def run_lines(lines):
     i = 0
     while i < len(lines):
-        # keep Pygame event loop responsive
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -170,49 +159,6 @@ def run_lines(lines):
         if not line or line.startswith("#"):
             i += 1
             continue
-
-        # Loops: REPEAT n { ... }
-        repeat_match = re.match(r"REPEAT\s+(\d+)\s*{", line)
-        if repeat_match:
-            count = int(repeat_match.group(1))
-            block = []
-            depth = 1
-            i += 1
-            while i < len(lines) and depth > 0:
-                l = lines[i].strip()
-                if l.endswith("{"):
-                    depth += 1
-                if l == "}":
-                    depth -= 1
-                if depth > 0:
-                    block.append(l)
-                i += 1
-            for _ in range(count):
-                run_lines(block)
-            continue
-
-        # Variables: SET name expr
-        set_match = re.match(r"SET\s+(\w+)\s+(.+)", line)
-        if set_match:
-            var, expr = set_match.groups()
-            variables[var] = evaluate_expr(expr)
-            print(f"[SET] {var} = {variables[var]}")
-            i += 1
-            continue
-
-        # Conditionals: IF cond THEN cmd
-        if_match = re.match(r"IF\s+(.+)\s+THEN\s+(.+)", line)
-        if if_match:
-            cond, cmd = if_match.groups()
-            try:
-                if evaluate_expr(cond):
-                    run_lines([cmd])
-            except Exception as e:
-                print(f"[IF ERROR] {e}")
-            i += 1
-            continue
-
-        # Normal commands
         parts = re.split(r'\s+', line)
         cmd = parts[0].upper()
         args = parts[1:]
@@ -236,18 +182,8 @@ def run_script(file):
 
 # ---- MAIN ENTRY ----
 if __name__ == "__main__":
-    # Accept a filename as the first argument, otherwise prompt
     if len(sys.argv) > 1:
-        script_file = os.path.expanduser(sys.argv[1])
-        if os.path.exists(script_file):
-            run_script(script_file)
-        else:
-            print(f"File not found: {script_file}")
+        run_script(sys.argv[1])
     else:
-        # interactive prompt: keep old UX intact
-        script_file = input("Enter script filename (e.g., ritual.txt): ").strip()
-        script_file = os.path.expanduser(script_file)
-        if os.path.exists(script_file):
-            run_script(script_file)
-        else:
-            print(f"File not found: {script_file}")
+        fname = input("Enter script filename: ").strip()
+        run_script(fname)

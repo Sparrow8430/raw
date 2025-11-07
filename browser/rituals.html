@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Ritual Studio — PURE</title>
+  <style>
+    body{background:#020012;color:#fefefe;font-family:Inter,system-ui,monospace;padding:18px}
+    textarea{width:100%;height:320px;background:rgba(255,255,255,0.03);color:#fff;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:8px;font-family:monospace}
+    button{padding:10px 14px;margin:8px;background:linear-gradient(135deg,#7b2cff,#00d4ff);border:none;color:#050505;border-radius:8px;cursor:pointer}
+    .row{display:flex;gap:8px;align-items:center}
+    .left{flex:1}
+    #status{margin-top:12px;color:#ccf}
+  </style>
+</head>
+<body>
+  <h1>Ritual Studio</h1>
+  <div class="row">
+    <div class="left">
+      <input id="name" placeholder="ritual.txt" style="width:200px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06)"/>
+    </div>
+    <div>
+      <button id="run">Run</button>
+      <button id="save">Save</button>
+    </div>
+  </div>
+
+  <textarea id="script"># Example ritual
+CHIME
+PAUSE 0.5
+LIGHT 128 0 128
+REPEAT 3 {
+  FLASH 255 0 0 1
+  ORB 200 200 50 0 0 255
+  SIGIL 50 50 100 100 0 255 0
+}
+INSCRIBE Ritual complete!
+</textarea>
+
+<div id="status"></div>
+
+<script>
+async function runScript() {
+  const script = document.getElementById('script').value;
+  const name = document.getElementById('name').value || 'ritual.txt';
+  const res = await fetch('http://127.0.0.1:8899/ritual/run', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, script})
+  });
+  const json = await res.json();
+  if (json.ok) {
+    document.getElementById('status').textContent = `Started pid=${json.pid} — saved ${json.path}`;
+  } else {
+    document.getElementById('status').textContent = `Error: ${json.error||'unknown'}`;
+  }
+}
+
+document.getElementById('run').addEventListener('click', runScript);
+</script>
+</body>
+</html>

@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 """
-Simple local search stub for PURE v0.1
-Serves a JSON list of fake local results. Later this will index local pages.
+Simple local search server for PURE
+Serves a JSON list of demo local results
 """
+
 from flask import Flask, request, jsonify
-import os
 
 app = Flask("pure-search")
 
 @app.route("/search")
 def search():
-    q = request.args.get("q", "")
+    q = request.args.get("q", "").strip()
     results = []
-    if q.strip():
-        results.append({"title": f"Local result for {q}", "snippet": f"This is a demo hit for '{q}'", "url": f"pure://local/{q}"})
+
+    if q:
+        results.append({
+            "title": f"Local result for {q}",
+            "snippet": f"This is a demo hit for '{q}'",
+            "url": f"pure://local/{q}"
+        })
     else:
-        results.append({"title": "PURE Search", "snippet": "Type a query to search local content", "url": "pure://local/"})
+        results.append({
+            "title": "PURE Search",
+            "snippet": "Type a query to search local content",
+            "url": "pure://local/"
+        })
+
     return jsonify({"query": q, "results": results})
 
 if __name__ == "__main__":

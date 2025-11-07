@@ -4,18 +4,17 @@ Flask server for PURE Ritual language UI
 Handles search queries and optional Ritual script execution
 """
 
-import os
-import subprocess
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import subprocess
+import os
 
-app = Flask(__name__)
-CORS(app)  # Allow cross-origin requests from local Electron/browser UI
+app = Flask("pure-ritual")
+CORS(app)  # Allow cross-origin requests
 
 # -------------------------------
 # Simple search API (demo)
 # -------------------------------
-
 @app.route("/search")
 def search():
     q = request.args.get("q", "").strip()
@@ -35,23 +34,18 @@ def search():
 # -------------------------------
 # Optional Ritual execution endpoint
 # -------------------------------
-
 @app.route("/run", methods=["POST"])
 def run_ritual():
     data = request.get_json()
     script_path = data.get("script")
     if not script_path:
         return jsonify({"error": "No script path provided"}), 400
-
-    # Resolve absolute path
-    repo_root = os.path.dirname(os.path.abspath(__file__))
-    ritual_script = os.path.join(repo_root, "ritual_esolang.py")
-    if not os.path.isfile(ritual_script):
-        return jsonify({"error": f"Ritual interpreter not found at {ritual_script}"}), 500
-
+    script_path = os.path.expanduser(script_path)
+    if not os.path.isfile(script_path):
+        return jsonify({"error": "Script not found"}), 404
     try:
         result = subprocess.run(
-            ["python3", ritual_script, script_path],
+            ["python3", os.path.join(os.path.dirname(__file__), "ritual_esolang.py"), script_path],
             capture_output=True, text=True, check=True
         )
         return jsonify({"output": result.stdout})
@@ -61,7 +55,6 @@ def run_ritual():
 # -------------------------------
 # Health check
 # -------------------------------
-
 @app.route("/ping")
 def ping():
     return jsonify({"status": "ok"})
@@ -69,7 +62,5 @@ def ping():
 # -------------------------------
 # Run server
 # -------------------------------
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8888)
-

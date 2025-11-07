@@ -1,143 +1,253 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env python3
+# ritual_esolang.py — Ritual esolang + visuals
+# Put this at: ~/pure/pure-lang/ritual_esolang.py
+# Make executable: chmod +x ritual_esolang.py
 
-# ----------------------------
-# PURE v0.1 Installer
-# ----------------------------
+import os
+import subprocess
+import webbrowser
+import time
+import re
+import pygame
+from pygame import gfxdraw
+import sys
 
-# Colors for echo
-CYAN="\033[0;36m"
-MAGENTA="\033[0;35m"
-YELLOW="\033[1;33m"
-RESET="\033[0m"
+# ---- MEMORY / STATE ----
+cells = [0] * 10
+ptr = 0
+variables = {}
 
-echo -e "${CYAN}[*] PURE v0.1 bootstrap starting...${RESET}"
+# ---- Pygame setup ----
+pygame.init()
+screen = pygame.display.set_mode((400, 400))
+pygame.display.set_caption("Ritual Visuals")
+clock = pygame.time.Clock()
+screen.fill((0,0,0))
+pygame.display.flip()
 
-# ----------------------------
-# Check OS
-# ----------------------------
-if ! command -v apt >/dev/null 2>&1; then
-  echo -e "${YELLOW}[!] This installer expects an apt-based Linux (Ubuntu/Debian/Linux Lite). Exiting.${RESET}"
-  exit 1
-fi
+# ---- COMMAND FUNCTIONS ----
+def AMPLIFY(): 
+    global cells, ptr
+    cells[ptr] = (cells[ptr] + 1) % 256
+    print(f"[AMPLIFY] cell[{ptr}]={cells[ptr]}")
 
-# ----------------------------
-# Update & Install Dependencies
-# ----------------------------
-echo -e "${CYAN}[*] Updating packages...${RESET}"
-sudo apt update -y
+def DIMINISH(): 
+    global cells, ptr
+    cells[ptr] = (cells[ptr] - 1) % 256
+    print(f"[DIMINISH] cell[{ptr}]={cells[ptr]}")
 
-echo -e "${CYAN}[*] Installing core dependencies...${RESET}"
-sudo apt install -y python3 python3-venv python3-pip git curl \
-libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-build-essential xdg-utils
+def SHIFT(): 
+    global ptr
+    ptr = (ptr + 1) % len(cells)
+    print(f"[PTR] {ptr}")
 
-# ----------------------------
-# Create Workspace
-# ----------------------------
-WORKDIR="$HOME/pure"
-mkdir -p "$WORKDIR"
-echo -e "${CYAN}[*] Workspace: $WORKDIR${RESET}"
+def RETURN(): 
+    global ptr
+    ptr = (ptr - 1) % len(cells)
+    print(f"[PTR] {ptr}")
 
-# ----------------------------
-# Clone or Copy Repo
-# ----------------------------
-REPO_PATH="$(pwd)"
-if [ -f "$REPO_PATH/install.sh" ]; then
-  echo -e "${CYAN}[*] Using repo at $REPO_PATH${RESET}"
-  rsync -a --exclude='.git' "$REPO_PATH/" "$WORKDIR/"
-else
-  echo -e "${CYAN}[*] Repo not found locally; cloning from GitHub...${RESET}"
-  git clone https://github.com/Slave88/pure.git "$WORKDIR"
-fi
+def CHIME(): 
+    print("\a", end="", flush=True)
+    print("[CHIME]")
 
-cd "$WORKDIR"
+def PAUSE(sec="1"): 
+    time.sleep(float(sec))
+    print(f"[PAUSE] {sec}s")
 
-# ----------------------------
-# Python Virtual Env
-# ----------------------------
-echo -e "${CYAN}[*] Creating Python virtual environment...${RESET}"
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
+def SUMMON(app): 
+    # cross-platform attempt: on Linux use xdg-open when URL-like, otherwise attempt subprocess
+    try:
+        if os.path.exists(app):
+            if sys.platform.startswith("win"):
+                os.startfile(app)
+            else:
+                subprocess.Popen([app], shell=True)
+        else:
+            # if it looks like a URL open in browser
+            if re.match(r"^https?://", app):
+                webbrowser.open(app)
+            else:
+                subprocess.Popen(app, shell=True)
+    except Exception as e:
+        print(f"[SUMMON ERROR] {e}")
+    print(f"[SUMMON] {app}")
 
-# ----------------------------
-# Install Search & Protocol Dependencies
-# ----------------------------
-echo -e "${CYAN}[*] Installing Python packages for search & protocol...${RESET}"
-if [ -f "search/requirements.txt" ]; then
-  pip install -r search/requirements.txt
-fi
-if [ -f "protocol/requirements.txt" ]; then
-  pip install -r protocol/requirements.txt || true
-fi
+def PORTAL(link): 
+    webbrowser.open(link)
+    print(f"[PORTAL] {link}")
 
-# ----------------------------
-# Setup Ritual Language
-# ----------------------------
-echo -e "${CYAN}[*] Installing Ritual language & Pygame visuals...${RESET}"
-pip install pygame flask
+def INSCRIBE(val): 
+    print(f"[INSCRIBE] {val}")
 
-# Make Ritual executable & link globally
-chmod +x "$WORKDIR/pure-lang/ritual_esolang.py"
-sudo ln -sf "$WORKDIR/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
+def SCRIBE(var, val): 
+    # safer eval: allow arithmetic + variables only
+    try:
+        variables[var] = eval(val, {}, variables)
+    except Exception:
+        variables[var] = val
+    print(f"[SCRIBE] {var} = {variables[var]}")
 
-# Make Flask bridge server executable
-chmod +x "$WORKDIR/pure-lang/server.py"
+def LIGHT(r="255", g="255", b="255"): 
+    screen.fill((int(r), int(g), int(b)))
+    pygame.display.flip()
+    print(f"[LIGHT] {r},{g},{b}")
 
-# Add demo Ritual script
-DEMO_SCRIPT="$WORKDIR/pure-lang/ritual.txt"
-cat > "$DEMO_SCRIPT" <<'EOF'
-# Demo Ritual script
-CHIME
-PAUSE 0.5
-LIGHT 128 0 128
-REPEAT 3 {
-    FLASH 255 0 0 1
-    ORB 200 200 50 0 0 255
-    SIGIL 50 50 100 100 0 255 0
+def FLASH(r="255", g="255", b="255", times="1"):
+    for _ in range(int(times)):
+        screen.fill((int(r), int(g), int(b)))
+        pygame.display.flip()
+        time.sleep(0.2)
+        screen.fill((0,0,0))
+        pygame.display.flip()
+        time.sleep(0.2)
+    print(f"[FLASH] {r},{g},{b} x{times}")
+
+def SIGIL(x="50", y="50", w="100", h="100", r="255", g="255", b="255"):
+    pygame.draw.rect(screen, (int(r), int(g), int(b)), (int(x), int(y), int(w), int(h)))
+    pygame.display.flip()
+    print(f"[SIGIL] at {x},{y} size {w}x{h}")
+
+def ORB(x="200", y="200", rad="50", r="255", g="255", b="255"):
+    gfxdraw.filled_circle(screen, int(x), int(y), int(rad), (int(r), int(g), int(b)))
+    pygame.display.flip()
+    print(f"[ORB] at {x},{y} radius {rad}")
+
+def CHANT(file): 
+    try:
+        subprocess.Popen(file, shell=True)
+    except Exception as e:
+        print(f"[CHANT ERROR] {e}")
+    print(f"[CHANT] {file}")
+
+def RIFT(app="blender"): 
+    try:
+        subprocess.Popen(app, shell=True)
+    except Exception as e:
+        print(f"[RIFT ERROR] {e}")
+    print(f"[RIFT] {app}")
+
+def ECHO(val): 
+    print(f"[ECHO] {val}")
+
+def ARCANE(script_file): 
+    if os.path.exists(script_file):
+        run_script(script_file)
+    else:
+        print(f"[ARCANE] File not found: {script_file}")
+
+# ---- COMMAND REGISTRY ----
+commands = {
+    "AMPLIFY": AMPLIFY, "DIMINISH": DIMINISH, "SHIFT": SHIFT, "RETURN": RETURN,
+    "CHIME": CHIME, "PAUSE": PAUSE, "SUMMON": SUMMON, "PORTAL": PORTAL,
+    "INSCRIBE": INSCRIBE, "SCRIBE": SCRIBE, "LIGHT": LIGHT, "FLASH": FLASH,
+    "SIGIL": SIGIL, "ORB": ORB, "CHANT": CHANT, "RIFT": RIFT, "ECHO": ECHO,
+    "ARCANE": ARCANE
 }
-INSCRIBE Demo complete!
-EOF
 
-# ----------------------------
-# Aesthetic Enhancements
-# ----------------------------
-echo -e "${CYAN}[*] Applying aesthetic setup...${RESET}"
+# ---- Helper functions ----
+def evaluate_expr(expr):
+    # replace variables first
+    for var in variables:
+        # word-boundary replace only variable names
+        expr = re.sub(r'\b' + re.escape(var) + r'\b', str(variables[var]), expr)
+    try:
+        return eval(expr, {}, {})
+    except Exception:
+        try:
+            return eval(expr, {}, variables)
+        except Exception:
+            return expr
 
-# Example: create wallpapers folder
-mkdir -p "$WORKDIR/wallpapers"
-# Download example wallpaper
-curl -s -L -o "$WORKDIR/wallpapers/pure_bg.png" https://i.imgur.com/3O8Xr5t.png || true
+def run_lines(lines):
+    i = 0
+    while i < len(lines):
+        # keep Pygame event loop responsive
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+        line = lines[i].strip()
+        if not line or line.startswith("#"):
+            i += 1
+            continue
 
-# Optional: add fonts or UI themes (extend here)
-mkdir -p "$WORKDIR/fonts"
+        # Loops: REPEAT n { ... }
+        repeat_match = re.match(r"REPEAT\s+(\d+)\s*{", line)
+        if repeat_match:
+            count = int(repeat_match.group(1))
+            block = []
+            depth = 1
+            i += 1
+            while i < len(lines) and depth > 0:
+                l = lines[i].strip()
+                if l.endswith("{"):
+                    depth += 1
+                if l == "}":
+                    depth -= 1
+                if depth > 0:
+                    block.append(l)
+                i += 1
+            for _ in range(count):
+                run_lines(block)
+            continue
 
-deactivate
+        # Variables: SET name expr
+        set_match = re.match(r"SET\s+(\w+)\s+(.+)", line)
+        if set_match:
+            var, expr = set_match.groups()
+            variables[var] = evaluate_expr(expr)
+            print(f"[SET] {var} = {variables[var]}")
+            i += 1
+            continue
 
-# ----------------------------
-# Completion Message
-# ----------------------------
-echo -e "${CYAN}[*] PURE installation complete!${RESET}"
-echo -e "Run ${MAGENTA}ritual${RESET} to try your creative scripting environment."
-echo
-cat <<'EOF'
-QUICK START:
+        # Conditionals: IF cond THEN cmd
+        if_match = re.match(r"IF\s+(.+)\s+THEN\s+(.+)", line)
+        if if_match:
+            cond, cmd = if_match.groups()
+            try:
+                if evaluate_expr(cond):
+                    run_lines([cmd])
+            except Exception as e:
+                print(f"[IF ERROR] {e}")
+            i += 1
+            continue
 
-1) Start protocol server:
-   cd ~/pure
-   source .venv/bin/activate
-   python3 protocol/server.py
-   (open another terminal)
+        # Normal commands
+        parts = re.split(r'\s+', line)
+        cmd = parts[0].upper()
+        args = parts[1:]
+        if cmd in commands:
+            try:
+                commands[cmd](*args)
+            except Exception as e:
+                print(f"[ERROR] {line} -> {e}")
+        else:
+            print(f"[UNKNOWN] {cmd}")
+        i += 1
 
-2) Start search server:
-   source .venv/bin/activate
-   python3 search/server.py
-   (open another terminal)
+def run_script(file):
+    file = os.path.expanduser(file)
+    if not os.path.isfile(file):
+        print(f"File not found: {file}")
+        return
+    with open(file, "r") as f:
+        lines = f.readlines()
+    run_lines(lines)
 
-3) Open the UI in a browser (local file):
-   xdg-open ~/pure/browser/index.html
-
-4) Run the Ritual demo:
-   ritual /pure-lang/ritual.txt
-EOF
+# ---- MAIN ENTRY ----
+if __name__ == "__main__":
+    # Accept a filename as the first argument, otherwise prompt
+    if len(sys.argv) > 1:
+        script_file = os.path.expanduser(sys.argv[1])
+        if os.path.exists(script_file):
+            run_script(script_file)
+        else:
+            print(f"File not found: {script_file}")
+    else:
+        # interactive prompt: keep old UX intact
+        script_file = input("Enter script filename (e.g., ritual.txt): ").strip()
+        script_file = os.path.expanduser(script_file)
+        if os.path.exists(script_file):
+            run_script(script_file)
+        else:
+            print(f"File not found: {script_file}")

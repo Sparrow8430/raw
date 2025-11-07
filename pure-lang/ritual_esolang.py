@@ -79,14 +79,14 @@ echo -e "${CYAN}[*] Installing Ritual language & Pygame visuals...${RESET}"
 pip install pygame flask
 
 # Make Ritual executable & link globally
-chmod +x "$WORKDIR/pure-protocol/pure-lang/ritual_esolang.py"
-sudo ln -sf "$WORKDIR/pure-protocol/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
+chmod +x "$WORKDIR/pure-lang/ritual_esolang.py"
+sudo ln -sf "$WORKDIR/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
 
 # Make Flask bridge server executable
-chmod +x "$WORKDIR/pure-protocol/pure-lang/server.py"
+chmod +x "$WORKDIR/pure-lang/server.py"
 
 # Add demo Ritual script
-DEMO_SCRIPT="$WORKDIR/pure-protocol/pure-lang/ritual_demo.txt"
+DEMO_SCRIPT="$WORKDIR/pure-lang/ritual_demo.txt"
 cat > "$DEMO_SCRIPT" <<'EOF'
 # Demo Ritual script
 CHIME
@@ -139,5 +139,5 @@ QUICK START:
    xdg-open ~/pure/browser/index.html
 
 4) Run the Ritual demo:
-   ritual pure-protocol/pure-lang/ritual_demo.txt
+   ritual /pure-lang/ritual_demo.txt
 EOF

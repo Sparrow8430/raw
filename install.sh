@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# ---------------------------------------------------------
-# PURE bootstrap installer (idempotent) - v0.2
-# - Installs system deps (apt)
-# - Creates Python venv and installs python deps
-# - Fixes filenames, symlinks ritual binary
-# - Installs electron deps in browser/
-# - Creates small start scripts for convenience
+
 # ---------------------------------------------------------
 
-REPO_REMOTE="https://github.com/Sparrow8430/pure.git"
+# PURE bootstrap installer v0.3
+
+# - Installs system dependencies (apt)
+
+# - Creates Python venv and installs Python dependencies
+
+# - Fixes filenames, symlinks ritual binary
+
+# - Installs Electron dependencies
+
+# - Creates convenient start scripts
+
+# ---------------------------------------------------------
+
+REPO_REMOTE="[https://github.com/Sparrow8430/pure.git](https://github.com/Sparrow8430/pure.git)"
 WORKDIR="$HOME/pure"
 VENV_DIR="$WORKDIR/.venv"
 
@@ -17,130 +25,117 @@ info(){ printf "\e[36m[*]\e[0m %s\n" "$1"; }
 warn(){ printf "\e[33m[!]\e[0m %s\n" "$1"; }
 err(){ printf "\e[31m[-]\e[0m %s\n" "$1"; exit 1; }
 
-# Ensure apt-based
+# Ensure apt-based system
+
 if ! command -v apt >/dev/null 2>&1; then
-  err "This installer expects an apt-based system (Ubuntu, Debian, Kali). Exiting."
+err "This installer expects an apt-based system. Exiting."
 fi
 
-# update + base packages
+# Update & install system packages
+
 info "Updating system packages..."
-sudo apt update -y
-sudo apt upgrade -y
+sudo apt update -y && sudo apt upgrade -y
+info "Installing dependencies..."
+sudo apt install -y python3 python3-venv python3-pip git curl build-essential 
+nodejs npm libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev xdg-utils
 
-info "Installing system packages (python, node, build deps, SDL2 for Pygame, curl)..."
-sudo apt install -y \
-  python3 python3-venv python3-pip git curl build-essential \
-  nodejs npm libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
-  xdg-utils
+# Clone repo if missing
 
-# Create workspace (use existing clone if present)
-if [ -d "$WORKDIR" ] && [ -f "$WORKDIR/install.sh" ]; then
-  info "Found existing repo at $WORKDIR — using it."
+if [ ! -d "$WORKDIR" ]; then
+info "Cloning repo into $WORKDIR..."
+git clone "$REPO_REMOTE" "$WORKDIR"
 else
-  info "Cloning repo into $WORKDIR..."
-  rm -rf "$WORKDIR"
-  git clone "$REPO_REMOTE" "$WORKDIR"
+info "Using existing repo at $WORKDIR"
 fi
-
 cd "$WORKDIR"
 
-# Guard: ensure pure-lang folder exists
-if [ ! -d "pure-lang" ]; then
-  warn "pure-lang folder not found; creating placeholder."
-  mkdir -p pure-lang
-fi
+# Fix server filename typo if present
 
-# Fix possible filename typo: server,py -> server.py
 if [ -f "pure-lang/server,py" ]; then
-  info "Fixing filename typo: pure-lang/server,py -> pure-lang/server.py"
-  mv -f pure-lang/server,py pure-lang/server.py
+info "Fixing typo server,py -> server.py"
+mv -f pure-lang/server,py pure-lang/server.py
 fi
 
-# Python venv
+# Python virtual environment
+
 if [ ! -d "$VENV_DIR" ]; then
-  info "Creating Python virtual environment..."
-  python3 -m venv "$VENV_DIR"
+info "Creating Python virtual environment..."
+python3 -m venv "$VENV_DIR"
 fi
-# Activate venv for pip installs
-# shellcheck source=/dev/null
 source "$VENV_DIR/bin/activate"
-
-info "Upgrading pip..."
 pip install --upgrade pip setuptools wheel
 
-# Install Python requirements (search & protocol)
-if [ -f "search/requirements.txt" ]; then
-  info "Installing search requirements..."
-  pip install -r search/requirements.txt
-fi
+# Install Python requirements
 
-if [ -f "protocol/requirements.txt" ]; then
-  info "Installing protocol requirements..."
-  pip install -r protocol/requirements.txt || true
-fi
+[ -f "search/requirements.txt" ] && pip install -r search/requirements.txt
+[ -f "protocol/requirements.txt" ] && pip install -r protocol/requirements.txt || true
 
-# Always install these runtime deps
-info "Installing runtime packages: flask-cors, pygame, flask"
-pip install flask-cors pygame flask
+# Runtime packages
 
-# Make ritual script executable (if present) and symlink
+pip install flask flask-cors pygame
+
+# Make ritual executable & symlink
+
 if [ -f "pure-lang/ritual_esolang.py" ]; then
-  info "Making ritual executable and installing symlink /usr/local/bin/ritual"
-  chmod +x pure-lang/ritual_esolang.py
-  sudo ln -sf "$(pwd)/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
+info "Making ritual executable and linking to /usr/local/bin/ritual"
+chmod +x pure-lang/ritual_esolang.py
+sudo ln -sf "$WORKDIR/pure-lang/ritual_esolang.py" /usr/local/bin/ritual
 else
-  warn "pure-lang/ritual_esolang.py not found — please add it to the repo."
+warn "pure-lang/ritual_esolang.py not found."
 fi
 
-# Ensure ritual bridge server file is executable (if present)
-if [ -f "pure-lang/server.py" ]; then
-  chmod +x pure-lang/server.py
-fi
+# Make ritual bridge server executable
+
+[ -f "pure-lang/server.py" ] && chmod +x pure-lang/server.py
 
 # Seed demo ritual if missing
+
 DEMORIT="$WORKDIR/pure-lang/ritual.txt"
 if [ ! -f "$DEMORIT" ]; then
-  info "Seeding demo ritual to $DEMORIT"
-  cat > "$DEMORIT" <<'RITUAL'
+info "Seeding demo ritual..."
+cat > "$DEMORIT" <<'RITUAL'
+
 # Demo ritual
+
 CHIME
 PAUSE 0.5
 LIGHT 128 0 128
 REPEAT 3 {
-  FLASH 255 0 0 1
-  ORB 200 200 50 0 0 255
-  SIGIL 50 50 100 100 0 255 0
+FLASH 255 0 0 1
+ORB 200 200 50 0 0 255
+SIGIL 50 50 100 100 0 255 0
 }
 INSCRIBE Ritual complete!
 RITUAL
 fi
 
-# Electron / browser setup
+# Electron/browser setup
+
 if [ -d "browser" ]; then
-  info "Installing browser npm deps (electron + socks-proxy-agent)..."
-  cd browser
-  # Ensure package.json exists
-  if [ ! -f package.json ]; then
-    npm init -y >/dev/null 2>&1 || true
-  fi
-  npm install --no-audit --no-fund electron --save-dev
-  npm install socks-proxy-agent --save
-  cd "$WORKDIR"
+info "Installing browser dependencies..."
+cd browser
+[ ! -f package.json ] && npm init -y >/dev/null 2>&1
+npm install --no-audit --no-fund electron --save-dev
+npm install socks-proxy-agent --save
+cd "$WORKDIR"
 else
-  warn "browser/ missing — skip npm install"
+warn "browser/ missing — skipping npm install"
 fi
 
-# Optional: install and enable tor if not present
+# Optional: install Tor
+
 if ! command -v tor >/dev/null 2>&1; then
-  info "Installing Tor..."
-  sudo apt install -y tor torsocks || warn "Tor install failed (you can install it manually)."
-else
-  info "Tor already installed."
+info "Installing Tor..."
+sudo apt install -y tor torsocks || warn "Tor install failed."
 fi
 
-# Make simple helper scripts in repo root for starting components
-info "Writing helper start scripts to $WORKDIR/bin/"
+# Create helper scripts
+
 mkdir -p "$WORKDIR/bin"
+for script in start-protocol.sh start-search.sh start-ritual-server.sh start-browser-http.sh start-electron.sh start-all.sh; do
+
+> "$WORKDIR/bin/$script"
+> done
 
 cat > "$WORKDIR/bin/start-protocol.sh" <<'SH'
 #!/usr/bin/env bash
@@ -176,7 +171,6 @@ SH
 cat > "$WORKDIR/bin/start-electron.sh" <<'SH'
 #!/usr/bin/env bash
 cd "$(dirname "$0")/../browser"
-# run electron from local node_modules
 npm run start --silent || npx electron .
 SH
 
@@ -195,16 +189,13 @@ sleep 0.4
 echo "All services started. Use 'tail -f logs/*.log' to watch logs."
 SH
 
-# Make scripts executable
 chmod +x "$WORKDIR/bin/"*.sh
-
-# Create logs folder if missing
 mkdir -p "$WORKDIR/logs"
 
 # Create .gitignore if missing
+
 if [ ! -f .gitignore ]; then
-  cat > .gitignore <<'GIT'
-# virtualenvs, node modules, logs
+cat > .gitignore <<'GIT'
 .venv/
 node_modules/
 logs/
@@ -213,32 +204,5 @@ dist/
 GIT
 fi
 
-# Deactivate venv
 deactivate 2>/dev/null || true
-
 info "Installation complete."
-
-cat <<'EOF'
-
-Quick usage:
-
-cd ~/pure
-# activate venv for manual runs:
-source .venv/bin/activate
-
-# recommended: start everything via helper script (backgrounded)
-./bin/start-all.sh
-
-# or start individual pieces:
-./bin/start-protocol.sh
-./bin/start-search.sh
-./bin/start-ritual-server.sh
-./bin/start-browser-http.sh
-./bin/start-electron.sh   # launches electron UI
-
-Notes:
-- Browser UI is served at http://127.0.0.1:8000/index.html
-- Search API is at http://127.0.0.1:8888/search?q=...
-- Protocol server listens on TCP 9000
-- To route Electron fetches through Tor, use the socks-proxy-agent in your renderer/preload code.
-EOF

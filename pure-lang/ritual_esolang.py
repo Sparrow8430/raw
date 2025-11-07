@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# ritual_esolang.py — Ritual esolang + visuals
-# Make executable: chmod +x ritual_esolang.py
+"""
+Ritual esolang interpreter with simple Pygame visuals
+"""
 
 import os
 import subprocess
@@ -21,7 +22,7 @@ pygame.init()
 screen = pygame.display.set_mode((400, 400))
 pygame.display.set_caption("Ritual Visuals")
 clock = pygame.time.Clock()
-screen.fill((0,0,0))
+screen.fill((0, 0, 0))
 pygame.display.flip()
 
 # ---- COMMAND FUNCTIONS ----
@@ -137,17 +138,6 @@ commands = {
 }
 
 # ---- HELPER FUNCTIONS ----
-def evaluate_expr(expr):
-    for var in variables:
-        expr = re.sub(r'\b' + re.escape(var) + r'\b', str(variables[var]), expr)
-    try:
-        return eval(expr, {}, {})
-    except Exception:
-        try:
-            return eval(expr, {}, variables)
-        except Exception:
-            return expr
-
 def run_lines(lines):
     i = 0
     while i < len(lines):

@@ -9,7 +9,7 @@ set -euo pipefail
 # - Creates small start scripts for convenience
 # ---------------------------------------------------------
 
-REPO_REMOTE="https://github.com/Slave88/pure.git"
+REPO_REMOTE="https://github.com/Sparrow8430/pure.git"
 WORKDIR="$HOME/pure"
 VENV_DIR="$WORKDIR/.venv"
 

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Ritual esolang interpreter with simple Pygame visuals
+Ritual esolang interpreter + visuals (PURE v0.1)
+- Commands: AMPLIFY, DIMINISH, SHIFT, RETURN, CHIME, PAUSE, SUMMON, PORTAL, INSCRIBE, SCRIBE
+            LIGHT, FLASH, SIGIL, ORB, CHANT, RIFT, ECHO, ARCANE
+- Optional headless mode for testing or server execution
 """
 
 import os
@@ -8,22 +11,24 @@ import subprocess
 import webbrowser
 import time
 import re
-import pygame
 import sys
-from pygame import gfxdraw
+
+# ---- Headless / Pygame setup ----
+HEADLESS = "--nogui" in sys.argv
+if not HEADLESS:
+    import pygame
+    from pygame import gfxdraw
+    pygame.init()
+    screen = pygame.display.set_mode((400, 400))
+    pygame.display.set_caption("Ritual Visuals")
+    clock = pygame.time.Clock()
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
 
 # ---- MEMORY / STATE ----
 cells = [0] * 10
 ptr = 0
 variables = {}
-
-# ---- Pygame setup ----
-pygame.init()
-screen = pygame.display.set_mode((400, 400))
-pygame.display.set_caption("Ritual Visuals")
-clock = pygame.time.Clock()
-screen.fill((0, 0, 0))
-pygame.display.flip()
 
 # ---- COMMAND FUNCTIONS ----
 def AMPLIFY(): 
@@ -81,28 +86,32 @@ def SCRIBE(var, val):
     print(f"[SCRIBE] {var} = {variables[var]}")
 
 def LIGHT(r="255", g="255", b="255"): 
-    screen.fill((int(r), int(g), int(b)))
-    pygame.display.flip()
+    if not HEADLESS:
+        screen.fill((int(r), int(g), int(b)))
+        pygame.display.flip()
     print(f"[LIGHT] {r},{g},{b}")
 
 def FLASH(r="255", g="255", b="255", times="1"):
-    for _ in range(int(times)):
-        screen.fill((int(r), int(g), int(b)))
-        pygame.display.flip()
-        time.sleep(0.2)
-        screen.fill((0,0,0))
-        pygame.display.flip()
-        time.sleep(0.2)
+    if not HEADLESS:
+        for _ in range(int(times)):
+            screen.fill((int(r), int(g), int(b)))
+            pygame.display.flip()
+            time.sleep(0.2)
+            screen.fill((0,0,0))
+            pygame.display.flip()
+            time.sleep(0.2)
     print(f"[FLASH] {r},{g},{b} x{times}")
 
 def SIGIL(x="50", y="50", w="100", h="100", r="255", g="255", b="255"):
-    pygame.draw.rect(screen, (int(r), int(g), int(b)), (int(x), int(y), int(w), int(h)))
-    pygame.display.flip()
+    if not HEADLESS:
+        pygame.draw.rect(screen, (int(r), int(g), int(b)), (int(x), int(y), int(w), int(h)))
+        pygame.display.flip()
     print(f"[SIGIL] at {x},{y} size {w}x{h}")
 
 def ORB(x="200", y="200", rad="50", r="255", g="255", b="255"):
-    gfxdraw.filled_circle(screen, int(x), int(y), int(rad), (int(r), int(g), int(b)))
-    pygame.display.flip()
+    if not HEADLESS:
+        gfxdraw.filled_circle(screen, int(x), int(y), int(rad), (int(r), int(g), int(b)))
+        pygame.display.flip()
     print(f"[ORB] at {x},{y} radius {rad}")
 
 def CHANT(file): 
@@ -141,10 +150,11 @@ commands = {
 def run_lines(lines):
     i = 0
     while i < len(lines):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
+        if not HEADLESS:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
         line = lines[i].strip()
         if not line or line.startswith("#"):
             i += 1
@@ -172,8 +182,9 @@ def run_script(file):
 
 # ---- MAIN ENTRY ----
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        run_script(sys.argv[1])
+    args = [arg for arg in sys.argv[1:] if arg != "--nogui"]
+    if args:
+        run_script(args[0])
     else:
         fname = input("Enter script filename: ").strip()
         run_script(fname)

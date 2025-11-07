@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """
-PURE protocol server v0.2 — invite-only / role system
-- TCP server, simple handshake with client public key
-- Optional invite code for access control
-- Maintains node identity with role in ~/.pure/identity.json
+PURE Protocol Server v0.2
+- TCP server with peer registry
+- Node identity via RSA keypair
+- Minimal handshake:
+    CLIENT -> "HELLO <client_pub>"
+    SERVER -> "WELCOME <server_pub>"
+- Supports PING -> PONG and echo fallback
+- Tracks peers with roles and last_seen
 """
 
 import socket
 import threading
 import os
 import json
+import time
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -18,108 +23,112 @@ PORT = 9000
 KEY_DIR = os.path.expanduser("~/.pure/keys")
 PRIVATE_KEY_PATH = os.path.join(KEY_DIR, "node_private.pem")
 PUBLIC_KEY_PATH = os.path.join(KEY_DIR, "node_public.pem")
-IDENTITY_PATH = os.path.expanduser("~/.pure/identity.json")
-INVITES_PATH = os.path.expanduser("~/.pure/invites.txt")
+PEERS_PATH = os.path.expanduser("~/.pure/peers.json")
 
-# ------------------- Setup -------------------
+peers = {}  # pubkey -> {ip, port, role, last_seen}
+
+# -------------------------
+# Key management
+# -------------------------
 def ensure_keys():
     os.makedirs(KEY_DIR, exist_ok=True)
     if not os.path.exists(PRIVATE_KEY_PATH):
         priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        pem = priv.private_bytes(
+        pem_priv = priv.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()
         )
-        pub = priv.public_key().public_bytes(
+        pem_pub = priv.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        with open(PRIVATE_KEY_PATH, "wb") as f: f.write(pem)
-        with open(PUBLIC_KEY_PATH, "wb") as f: f.write(pub)
-        print("[*] Generated new node keypair")
+        with open(PRIVATE_KEY_PATH, "wb") as f:
+            f.write(pem_priv)
+        with open(PUBLIC_KEY_PATH, "wb") as f:
+            f.write(pem_pub)
+        print("[*] Generated new node keypair in", KEY_DIR)
     else:
-        print("[*] Using existing keys")
+        print("[*] Using existing keys in", KEY_DIR)
 
 def load_public():
     with open(PUBLIC_KEY_PATH, "rb") as f:
         return f.read().decode().strip()
 
-def load_identity():
-    if not os.path.exists(IDENTITY_PATH):
-        os.makedirs(os.path.dirname(IDENTITY_PATH), exist_ok=True)
-        identity = {"role": "INITIATE", "invites": []}
-        with open(IDENTITY_PATH, "w") as f:
-            json.dump(identity, f)
+# -------------------------
+# Peer registry
+# -------------------------
+def load_peers():
+    global peers
+    if os.path.exists(PEERS_PATH):
+        with open(PEERS_PATH, "r") as f:
+            peers = json.load(f)
     else:
-        with open(IDENTITY_PATH, "r") as f:
-            identity = json.load(f)
-    return identity
+        peers = {}
 
-def load_invites():
-    if os.path.exists(INVITES_PATH):
-        with open(INVITES_PATH, "r") as f:
-            return [line.strip() for line in f if line.strip()]
-    return []
+def save_peers():
+    with open(PEERS_PATH, "w") as f:
+        json.dump(peers, f, indent=2)
 
-# ------------------- Connection -------------------
-def handle_conn(conn, addr, server_pub, invites):
+def register_peer(pubkey, addr, role="INITIATE"):
+    peers[pubkey] = {
+        "ip": addr[0],
+        "port": addr[1],
+        "role": role,
+        "last_seen": time.time()
+    }
+    save_peers()
+    print(f"[+] Registered peer: {pubkey[:20]}..., role={role}, addr={addr}")
+
+# -------------------------
+# Connection handler
+# -------------------------
+def handle_conn(conn, addr, server_pub):
     print(f"[+] Connection from {addr}")
     try:
         data = conn.recv(4096).decode().strip()
         if not data:
             return
+        parts = data.split(maxsplit=1)
+        if parts[0].upper() == "HELLO" and len(parts) == 2:
+            client_pub = parts[1]
+            # Invite system placeholder
+            client_role = "INITIATE"  # Later: validate invite
+            register_peer(client_pub, addr, client_role)
+            conn.sendall(f"WELCOME {server_pub}\n".encode())
 
-        parts = data.split()
-        if parts[0].upper() != "HELLO":
+            # Message loop
+            while True:
+                msg = conn.recv(4096)
+                if not msg:
+                    break
+                text = msg.decode().strip()
+                if text.upper() == "PING":
+                    conn.sendall(b"PONG\n")
+                else:
+                    conn.sendall(f"ECHO: {text}\n".encode())
+        else:
             conn.sendall(b"ERR malformed handshake\n")
-            return
-
-        client_pub = parts[1]
-        client_invite = None
-        if len(parts) >= 4 and parts[2].upper() == "INVITE":
-            client_invite = parts[3]
-
-        if client_invite and client_invite not in invites:
-            conn.sendall(b"ERR invalid invite\n")
-            print(f"[-] Invalid invite from {addr}")
-            return
-
-        print(f"[>] HELLO from client pub (len {len(client_pub)})")
-        response = f"WELCOME {server_pub}\nROLE ARCHON\nSTATUS OK\n"
-        conn.sendall(response.encode())
-
-        while True:
-            msg = conn.recv(4096)
-            if not msg: break
-            text = msg.decode().strip()
-            if text.upper() == "PING":
-                conn.sendall(b"PONG\n")
-            else:
-                conn.sendall(f"ECHO: {text}\n".encode())
-
     except Exception as e:
-        print(f"[-] Connection error: {e}")
+        print("[-] Connection handler error:", e)
     finally:
         conn.close()
 
-# ------------------- Main -------------------
+# -------------------------
+# Main server
+# -------------------------
 def main():
     ensure_keys()
+    load_peers()
     server_pub = load_public()
-    identity = load_identity()
-    invites = load_invites()
-
+    print(f"[*] Server public key (first line): {server_pub.splitlines()[0]}")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen()
         print(f"[PURE] protocol server listening on {HOST}:{PORT}")
-        print("[*] Server public key (first line):", server_pub.splitlines()[0])
-        print("[*] Server role:", identity.get("role"))
-
         while True:
             conn, addr = s.accept()
-            t = threading.Thread(target=handle_conn, args=(conn, addr, server_pub, invites))
+            t = threading.Thread(target=handle_conn, args=(conn, addr, server_pub))
             t.daemon = True
             t.start()
 

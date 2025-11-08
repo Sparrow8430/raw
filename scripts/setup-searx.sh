@@ -1,20 +1,17 @@
-@echo off
-REM Create virtual environment
-python -m venv searx-venv
+#!/usr/bin/env bash
+set -e
 
-REM Activate it
-call searx-venv\Scripts\activate
+echo "Creating Python virtual environment..."
+python3 -m venv searx-venv
 
-REM Upgrade pip
-python -m pip install --upgrade pip
+source searx-venv/bin/activate
+echo "Upgrading pip..."
+pip install --upgrade pip
 
-REM Install SearxNG
+echo "Installing SearxNG..."
 pip install git+https://github.com/searxng/searxng.git
 
-REM Tell user how to run
-echo.
-echo SearxNG installed.
-echo Run your SearxNG server with:
-echo   call searx-venv\Scripts\activate
-echo   python -m searx.webapp
-pause
+echo "✅ Done!"
+echo "To run SearxNG:"
+echo "  source searx-venv/bin/activate"
+echo "  python -m searx.webapp"

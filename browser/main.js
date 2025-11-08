@@ -15,11 +15,12 @@ function createWindow() {
     win.loadURL('http://127.0.0.1:8888');
 
     // Optional: prevent navigation outside your server
-    win.webContents.on('will-navigate', (event, url) => {
-        if (!url.startsWith('http://127.0.0.1:8888')) {
-            event.preventDefault();
-        }
-    });
+win.webContents.setWindowOpenHandler(({ url }) => {
+  if (!url.startsWith('http://127.0.0.1:8888')) {
+    return { action: 'deny' };
+  }
+  return { action: 'allow' };
+});
 }
 
 app.whenReady().then(createWindow);

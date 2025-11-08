@@ -1,49 +1,13 @@
 version: "3.8"
+
 services:
-  tor:
-    image: dperson/torproxy:latest
-    container_name: pure_tor
-    restart: unless-stopped
-    networks:
-      - pure-net
-    # the dperson/torproxy image exposes a SOCKS5 server at 9050 by default
-    ports:
-      - "9050:9050"   # expose host:9050 -> container socks5 (optional)
-    command: "-a"    # run with default config (accepts socks on 9050)
-
-  privoxy:
-    image: linuxserver/privoxy:latest
-    container_name: pure_privoxy
-    restart: unless-stopped
-    networks:
-      - pure-net
-    depends_on:
-      - tor
-    environment:
-      - TZ=UTC
-    volumes:
-      - ./privoxy_config:/config
-    ports:
-      - "8118:8118"  # HTTP proxy that forwards to tor's socks
-
   searx:
-    image: searxng/searxng:latest
+    image: searx/searx:latest
     container_name: pure_searx
     restart: unless-stopped
-    networks:
-      - pure-net
-    depends_on:
-      - privoxy
-    environment:
-      - SEARX_USER_AGENT=PURE/0.1
-      # Make searx use the HTTP proxy (Privoxy) for upstream traffic:
-      - http_proxy=http://privoxy:8118
-      - https_proxy=http://privoxy:8118
-    ports:
-      - "8080:8080"   # host:8080 -> searx web UI/API
+    network_mode: "host"         # let the container reach host tor at 127.0.0.1:9050
     volumes:
       - ./settings.yml:/etc/searx/settings.yml:ro
-
-networks:
-  pure-net:
-    driver: bridge
+      - ./searx-data:/usr/local/searx/settings  # optional persistence
+    environment:
+      - SEARX_SETTINGS_PATH=/etc/searx/settings.yml

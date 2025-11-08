@@ -1,0 +1,8 @@
+# settings.yml (drop into your searx container mount)
+server:
+  secret_key: "change-this-to-a-random-secret"
+  site_name: "PURE Search"
+  site_description: "Pure-branded private search"
+  theme: "default"
+ui:
+  logo_text: "PURE"

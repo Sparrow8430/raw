@@ -1,8 +1,23 @@
-# settings.yml (drop into your searx container mount)
+# Minimal searx settings.yml (PURE branding + proxy)
 server:
-  secret_key: "change-this-to-a-random-secret"
-  site_name: "PURE Search"
-  site_description: "Pure-branded private search"
-  theme: "default"
+  base_url: http://127.0.0.1:8080
+
+search:
+  safe_mode: false
+  default_language: "en"
+  timeout: 15
+
 ui:
-  logo_text: "PURE"
+  site_name: "PURE Search"
+  logo_url: "https://raw.githubusercontent.com/Sparrow8430/pure/main/browser/assets/pure_logo.png"
+  favicon_url: "https://raw.githubusercontent.com/Sparrow8430/pure/main/browser/assets/pure_favicon.png"
+
+# TELL searx to use SOCKS proxy for outgoing requests.
+# searx uses requests library - we can set an http(s)_proxy env or configure in 'requests' via searx engines settings.
+# The following will set the requests session's default proxies.
+requests:
+  proxies:
+    http: "socks5h://127.0.0.1:9050"
+    https: "socks5h://127.0.0.1:9050"
+
+# engines: keep defaults; add or disable engines in the GUI later.

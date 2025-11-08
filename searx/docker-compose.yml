@@ -41,6 +41,8 @@ services:
       - https_proxy=http://privoxy:8118
     ports:
       - "8080:8080"   # host:8080 -> searx web UI/API
+    volumes:
+      - ./settings.yml:/etc/searx/settings.yml:ro
 
 networks:
   pure-net:

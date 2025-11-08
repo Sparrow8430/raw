@@ -1,4 +1,12 @@
+# Node/Electron
+node_modules/
+npm-debug.log
+.DS_Store
+
+# Python / SearxNG
 searx-venv/
 __pycache__/
 *.pyc
-node_modules/
+
+# OS junk
+Thumbs.db

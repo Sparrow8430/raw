@@ -1,5 +1,14 @@
-Install Node/Electron for the app (npm install)
+# Local Browser + SearxNG
 
-Run setup-searx.bat to get SearxNG
+A lightweight Electron browser that uses your own local SearxNG instance as its private search engine.
 
-Run npm start to open the Electron app
+---
+
+## 🧰 Setup
+
+### 1. Install SearxNG
+Run the setup script for your OS:
+
+#### On Linux/macOS
+```bash
+bash scripts/setup-searx.sh

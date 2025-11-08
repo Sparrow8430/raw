@@ -1,6 +1,7 @@
 {
-  "name": "pure-browser",
+  "name": "browser-app",
   "version": "1.0.0",
+  "description": "Pure Electron app",
   "main": "main.js",
   "scripts": {
     "start": "electron ."

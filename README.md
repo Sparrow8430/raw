@@ -4,7 +4,7 @@ A lightweight Electron browser that uses your own local SearxNG instance as its 
 
 ---
 
-## 🧰 Setup
+## Setup
 
 ### 1. Install SearxNG
 Run the setup script for your OS:
